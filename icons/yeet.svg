@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   sodipodi:docname="yeet.svg"
+   id="svg44"
+   version="1.1"
+   height="185.60851"
+   width="185.60851">
+  <metadata
+     id="metadata48">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>red arrow curve</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     inkscape:pagecheckerboard="true"
+     inkscape:current-layer="svg44"
+     inkscape:window-maximized="1"
+     inkscape:window-y="-6"
+     inkscape:window-x="-6"
+     inkscape:cy="62.727999"
+     inkscape:cx="174.80835"
+     inkscape:zoom="2.8258403"
+     showgrid="false"
+     id="namedview46"
+     inkscape:window-height="988"
+     inkscape:window-width="1680"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <title
+     id="title31">red arrow curve</title>
+  <defs
+     id="defs37">
+    <linearGradient
+       id="linearGradient12572">
+      <stop
+         stop-color="#ffab00"
+         offset="0"
+         id="stop12574" />
+      <stop
+         stop-color="#ffcf00"
+         offset="1"
+         id="stop12576" />
+    </linearGradient>
+    <linearGradient
+       y2="0.67634499"
+       y1="0.74997199"
+       xlink:href="#linearGradient12572"
+       x2="0.94913298"
+       x1="-0.089295998"
+       id="linearGradient12578" />
+  </defs>
+  <g
+     style="fill:#00aa44"
+     transform="rotate(180,93.47092,74.147304)"
+     id="g42">
+    <title
+       id="title39">Layer 1</title>
+    <path
+       style="fill:#00aa44"
+       fill="#000000"
+       stroke-width="5.1"
+       stroke-linecap="round"
+       stroke-linejoin="round"
+       stroke-miterlimit="4"
+       stroke-dashoffset="0"
+       id="rect1872"
+       d="m 19.575314,1.333379 c -2.89209,-0.014076 -6.649705,2.895157 -10.656251,10 -12.450439,22.078543 -15.663483,65.233461 25.766541,88.07976 40.567944,22.370901 83.425986,4.974491 100.495826,1.141891 l 2.96876,14.40625 48.12499,-42.78125 -61.125,-20.28125 3.34375,16.15625 C 110.07265,74.688155 73.045006,85.753814 49.368923,77.430038 17.9967,66.400528 15.759013,43.812171 20.262813,29.802133 25.174753,14.522492 25.937908,1.364339 19.575314,1.333379 Z" />
+  </g>
+  <text
+     transform="matrix(1.015898,0,-0.30856148,0.98435079,0,0)"
+     id="text52"
+     y="147.72949"
+     x="33.654846"
+     style="font-style:normal;font-weight:normal;font-size:54.9755px;line-height:1.25;font-family:sans-serif;fill:#002b00;fill-opacity:1;stroke:none;stroke-width:1.37439"
+     xml:space="preserve"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';fill:#002b00;stroke-width:1.37439"
+       y="147.72949"
+       x="33.654846"
+       id="tspan50"
+       sodipodi:role="line">YEET</tspan></text>
+</svg>
