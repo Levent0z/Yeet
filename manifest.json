@@ -4,14 +4,13 @@
     "description": "Allows you to 'yeet' (throw) the side-panel videos inside Google Meet from right to left and back.",
     "name": "Yeet",
     "title": "Yeet",
-    "permissions": [],
     "browser_action": {
         "default_title": "Yeet"
     },
     "icons": {
-        "16": "yeet16.png",
-        "48": "yeet48.png",
-        "128": "yeet128.png"
+        "16": "icons/yeet16.png",
+        "48": "icons/yeet48.png",
+        "128": "icons/yeet128.png"
     },
     "content_scripts": [
         {
