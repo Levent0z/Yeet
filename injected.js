@@ -178,14 +178,19 @@ if (!root) {
     function revert(viewMode) {
         log(`revert for ${viewMode}`);
         const mainVideo = getFirstChild();
-        mainVideo.style.transform = '';
-        mainVideo.style.left = '';
-
         const sideVideos = getOtherChildren();
-        sideVideos.forEach(node => {
-            node.style.transform = '';
-            node.style.left = '';
-        });
+
+        if (viewMode === 'autoTileView') {
+            mainVideo.style.transform = '';
+            sideVideos.forEach(node => {
+                node.style.transform = '';
+            });
+        } else {
+            mainVideo.style.left = '';
+            sideVideos.forEach(node => {
+                node.style.left = '';
+            });
+        }
     }
 
     function updateButton() {
@@ -235,10 +240,9 @@ if (!root) {
                 updateButton();
             },
             (previousClass) => {
-                log(`View deactivated. Current: ${getViewMode()}`);
-                // const viewMode = getViewModeFromClass(previousClass);
-                // revert(viewMode);
-                // updateButton();
+                const lastViewMode = getViewModeFromClass(previousClass);
+                log(`View deactivated. Previous: ${lastViewMode}, Current: ${getViewMode()}`);
+                // revert(lastViewMode);
             }
         );
 
@@ -273,12 +277,16 @@ if (!root) {
                 const mainWidth = parseInt(mainVideo.style.width);
                 const sideWidth = mainVideo.parentElement.clientWidth - mainWidth;
 
-                // Use translateX property
+                // Use translateX property, and keep the left property as it's being used by autoTileView
                 mainVideo.style.transform = `translateX(${sideWidth}px)`;
                 sideVideos.forEach(node => { node.style.transform = `translateX(-${mainWidth}px)`; });
             } else {
+                mainVideo.style.transform = '';
                 mainVideo.style.left = (viewMode === 'autoSideView' || viewMode === 'presentingView') ? '25%' : '218px';
-                sideVideos.forEach(node => { node.style.left = 0; });
+                sideVideos.forEach(node => { 
+                    node.style.left = 0; 
+                    node.style.transform = '';
+                });
             }
         }
 
