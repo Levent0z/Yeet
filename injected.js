@@ -65,9 +65,7 @@ class StyleWatcher {
 
     mutationCallback(mutationsList) {
         for (const mutation of mutationsList) {
-            const target = mutation.target;
             const before = mutation.oldValue ? mutation.oldValue.split(';') : [];
-            console.log('Before', before);
             const beforeMap = {};
             before.forEach(item => {
                 if (item) {
@@ -77,9 +75,11 @@ class StyleWatcher {
                     beforeMap[key] = value;
                 }
             });
+
             const afterMap = {};
-            Array.from(target.style).forEach(key => {
-                afterMap[key] = target.style[key];
+            const style = mutation.target.style;
+            Array.from(style).forEach(key => {
+                afterMap[key] = style[key];
             });
             this.styleChangedCallback(beforeMap, afterMap);
         }
@@ -197,6 +197,9 @@ if (!root) {
     function getFirstChild() {
         return parentView.querySelector(`.${childViewCls}[data-allocation-index="0"]`);
     }
+    function getSecondChild() {
+        return parentView.querySelector(`.${childViewCls}[data-allocation-index="1"]`);
+    }
 
     function getOtherChildren() {
         return parentView.querySelectorAll(`.${childViewCls}:not([data-allocation-index="0"])`);
@@ -226,7 +229,8 @@ if (!root) {
     }
 
     function updateMainView() {
-        const mainView = getFirstChild();
+        // const mainView = getFirstChild();
+        const mainView = getSecondChild();
         if (mainView !== currentMainView) {
             currentMainView = mainView;
             if (styleWatcher) {
