@@ -66,14 +66,17 @@ class StyleWatcher {
     mutationCallback(mutationsList) {
         for (const mutation of mutationsList) {
             const target = mutation.target;
-            const before = mutation.oldValue ? mutation.oldValue.split(' ') : [];
+            const before = mutation.oldValue ? mutation.oldValue.split(';') : [];
+            console.log('Before', before);
             const beforeMap = {};
-            for (let i = 0; i < before.length; i += 2) {
-                const key = before[i].substring(0, before[i].length - 1);
-                const value = before[i + 1].substring(0, before[i + 1].length - 1);
-                beforeMap[key] = value;
-
-            }
+            before.forEach(item => {
+                if (item) {
+                    const exp = item.split(':');
+                    const key = exp[0].trim();
+                    const value = exp[1].trim();
+                    beforeMap[key] = value;
+                }
+            });
             const afterMap = {};
             Array.from(target.style).forEach(key => {
                 afterMap[key] = target.style[key];
@@ -134,6 +137,8 @@ if (!root) {
 
     let classWatcher;
     let parentView;
+    let currentMainView;
+    let styleWatcher;
     let currentViewMode;
 
     function isGrandParent(node) {
@@ -220,18 +225,49 @@ if (!root) {
         }
     }
 
+    function updateMainView() {
+        const mainView = getFirstChild();
+        if (mainView !== currentMainView) {
+            currentMainView = mainView;
+            if (styleWatcher) {
+                styleWatcher.disconnect();
+                styleWatcher = undefined;
+            }
+            if (currentMainView) {
+                styleWatcher = new StyleWatcher(currentMainView, (beforeMap, afterMap) => {
+                    const set = new Set();
+                    Object.keys(beforeMap).forEach(k => set.add(k));
+                    Object.keys(afterMap).forEach(k => set.add(k));
+
+                    Array.from(set.keys()).forEach(k => {
+                        const beforeVal = beforeMap[k];
+                        const afterVal = afterMap[k];
+                        if (beforeVal !== afterVal) {
+                            console.log(`Changed ${k}: ${beforeVal} --> ${afterVal}`);
+                            // switch (k) {
+                            //     case 'width': console.log()
+                            // }
+                        }
+                    })
+                });
+            }
+        }
+    }
+
     function initializeParent() {
         log('watching...');
         // Default to true
         this.meetOnLeft = true;
 
-        new ChildWatcher(parentView, (added, removed) => {
+        new ChildWatcher(parentView, (removed, added) => {
             if (added && added.length) {
                 if (this.meetOnLeft && isYeetable()) {
                     updatePositions();
                 }
                 updateButton();
             }
+
+            updateMainView();
         });
 
         classWatcher = new ClassWatcher(parentView,
