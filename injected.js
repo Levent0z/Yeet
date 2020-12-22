@@ -9,41 +9,76 @@ log('starting up...')
 
 // Based on https://stackoverflow.com/questions/10612024/event-trigger-on-a-class-change?lq=1
 class ClassWatcher {
-    constructor(targetNode, classesToWatch, classAddedCallback, classRemovedCallback) {
+    constructor(targetNode, classChangedCallback) {
         this.targetNode = targetNode
-        this.classesToWatch = classesToWatch
-        this.classAddedCallback = classAddedCallback
-        this.classRemovedCallback = classRemovedCallback
-        this.lastClass = this.getFirstWatchedClass(targetNode.classList)
-        this.observer = new MutationObserver(this.mutationCallback);
+        this.classChangedCallback = classChangedCallback
+        this.observer = new MutationObserver(this.mutationCallback.bind(this));
         this.observe();
     }
 
-    getFirstWatchedClass(classList) {
-        return this.classesToWatch.find(c => classList.contains(c))
-    }
-
     observe() {
-        this.observer.observe(this.targetNode, { attributes: true, attributeFilter: ['class'] });
+        this.observer.observe(this.targetNode, {
+            attributes: true,
+            attributeFilter: ['class'],
+            attributeOldValue: true
+        });
     }
 
     disconnect() {
         this.observer.disconnect()
     }
 
-    mutationCallback = mutationsList => {
-        for (let mutation of mutationsList) {
-            const currentClass = this.getFirstWatchedClass(mutation.target.classList)
-            if (this.lastClass !== currentClass) {
-                const previousClass = this.lastClass;
-                this.lastClass = currentClass;
-                if (currentClass) {
-                    this.classAddedCallback(previousClass, currentClass)
-                } else {
-                    this.classRemovedCallback(previousClass)
-                }
-                return;
+    mutationCallback(mutationsList) {
+        for (const mutation of mutationsList) {
+            if (mutation.oldValue !== mutation.target.classList.value) {
+                const before = mutation.oldValue ? mutation.oldValue.split(' ') : [];
+                const after = (mutation.target.classList && mutation.target.classList.value) ? mutation.target.classList.value.split(' ') : [];
+
+                const beforeOnly = before.filter(b => after.indexOf(b) < 0);
+                const afterOnly = after.filter(a => before.indexOf(a) < 0);
+
+                this.classChangedCallback(beforeOnly, afterOnly);
             }
+        }
+    }
+}
+
+class StyleWatcher {
+    constructor(targetNode, sytleChangedCallback) {
+        this.targetNode = targetNode
+        this.styleChangedCallback = sytleChangedCallback
+        this.observer = new MutationObserver(this.mutationCallback.bind(this));
+        this.observe();
+    }
+
+    observe() {
+        this.observer.observe(this.targetNode, {
+            attributes: true,
+            attributeFilter: ['style'],
+            attributeOldValue: true
+        });
+    }
+
+    disconnect() {
+        this.observer.disconnect()
+    }
+
+    mutationCallback(mutationsList) {
+        for (const mutation of mutationsList) {
+            const target = mutation.target;
+            const before = mutation.oldValue ? mutation.oldValue.split(' ') : [];
+            const beforeMap = {};
+            for (let i = 0; i < before.length; i += 2) {
+                const key = before[i].substring(0, before[i].length - 1);
+                const value = before[i + 1].substring(0, before[i + 1].length - 1);
+                beforeMap[key] = value;
+    
+            }
+            const afterMap = {};    
+            Array.from(target.style).forEach(key => {
+                afterMap[key] = target.style[key];
+            });
+            this.styleChangedCallback(beforeMap, afterMap);
         }
     }
 }
@@ -74,7 +109,7 @@ class ChildWatcher {
 }
 // Hierarchy Classes
 const grandParentViewCls = 'loWbp';
-const parentViewCls = 'zWfAib';
+const parentViewCls = 'zWfAib'; // This is where all the top-level DIVs exist 
 const childViewCls = 'Zf0RDc';
 
 // View classes
@@ -85,6 +120,13 @@ const spotViewCls = 'n9oEIb'; // pinned view
 const presentingView1Cls = 'CTSK6e';
 const presentingView2Cls = 'SJniVb';
 const autoTileViewCls = 'Qtgubc'; // 'eFmLfc' 
+
+// New classes
+const presenting = 'Qtgubc';
+const tiles = 'eFmLfc';
+const pinned = 'QhPhw'; // presenting or not
+const sidebar = 'PvRhvb';
+
 
 const watchedClasses = [autoSideViewCls, sideViewCls, tileViewCls, spotViewCls, presentingView1Cls, presentingView2Cls, autoTileViewCls];
 
@@ -226,7 +268,7 @@ if (!root) {
             () => {
                 const viewMode = getViewMode();
                 log(`View activated. Current: ${viewMode}`);
-                 
+
                 if (this.meetOnLeft) {
                     toggleSide(true);
                 }
@@ -283,8 +325,8 @@ if (!root) {
             } else {
                 mainVideo.style.transform = '';
                 mainVideo.style.left = (viewMode === 'autoSideView' || viewMode === 'presentingView') ? '25%' : '218px';
-                sideVideos.forEach(node => { 
-                    node.style.left = 0; 
+                sideVideos.forEach(node => {
+                    node.style.left = 0;
                     node.style.transform = '';
                 });
             }
