@@ -7,6 +7,28 @@ const log = (...args) => {
 };
 log('starting up...')
 
+// Default to true
+let meetOnLeft = true;
+
+// Hierarchy Classes
+const grandParentViewCls = 'loWbp';
+const parentViewCls = 'zWfAib'; // This is where all the top-level DIVs exist 
+const childViewCls = 'Zf0RDc';
+
+// View classes
+const presenting = 'Qtgubc';
+const tiles = 'eFmLfc';
+const pinned = 'QhPhw'; // presenting or not
+const sidebar = 'PvRhvb';
+
+// Button Classes
+const buttonParentCls = 'NzPR9b';
+const buttonClasses = ['uArJ5e', 'UQuaGc', 'kCyAyd', 'kW31ib', 'foXzLb'];
+const buttonSeparatorCls = 'qO3Z3c';
+
+const buttonId = 'yeet-toggle-side';
+
+
 // Based on https://stackoverflow.com/questions/10612024/event-trigger-on-a-class-change?lq=1
 class ClassWatcher {
     constructor(targetNode, classChangedCallback) {
@@ -110,25 +132,8 @@ class ChildWatcher {
         }
     }
 }
-// Hierarchy Classes
-const grandParentViewCls = 'loWbp';
-const parentViewCls = 'zWfAib'; // This is where all the top-level DIVs exist 
-const childViewCls = 'Zf0RDc';
 
 
-// New classes
-const presenting = 'Qtgubc';
-const tiles = 'eFmLfc';
-const pinned = 'QhPhw'; // presenting or not
-const sidebar = 'PvRhvb';
-
-
-// Button Classes
-const buttonParentCls = 'NzPR9b';
-const buttonClasses = ['uArJ5e', 'UQuaGc', 'kCyAyd', 'kW31ib', 'foXzLb'];
-const buttonSeparatorCls = 'qO3Z3c';
-
-const buttonId = 'yeet-toggle-side';
 
 const root = document.querySelector('[jsname=RFn3Rd]');
 if (!root) {
@@ -136,6 +141,7 @@ if (!root) {
 } else {
 
     let classWatcher;
+    let childWatcher;
     let parentView;
     let currentMainView;
     let styleWatcher;
@@ -152,6 +158,11 @@ if (!root) {
                 log('Grandparent Lost');
                 if (classWatcher) {
                     classWatcher.disconnect();
+                    classWatcher = undefined;
+                }
+                if (childWatcher) {
+                    childWatcher.disconnect();
+                    childWatcher = undefined;
                 }
                 const button = document.getElementById(buttonId);
                 if (button) {
@@ -220,7 +231,7 @@ if (!root) {
         const element = document.getElementById(buttonId);
         if (element) {
             if (isYeetable()) {
-                element.innerText = this.meetOnLeft ? '> Yeet >' : '< Yeet <';
+                element.innerText = meetOnLeft ? 'Yeet>>' : 'Yeet<<';
                 // element.innerHTML = // SVG viewBox = 0 0 24 24 ( width: 24px height: 24px)
             } else {
                 element.innerText = "Can't Yeet RN";
@@ -243,36 +254,81 @@ if (!root) {
                     Object.keys(beforeMap).forEach(k => set.add(k));
                     Object.keys(afterMap).forEach(k => set.add(k));
 
+                    let adjust = false;
                     Array.from(set.keys()).forEach(k => {
                         const beforeVal = beforeMap[k];
                         const afterVal = afterMap[k];
                         if (beforeVal !== afterVal) {
                             console.log(`Changed ${k}: ${beforeVal} --> ${afterVal}`);
-                            // switch (k) {
-                            //     case 'width': console.log()
-                            // }
+                            switch (k) {
+                                case 'width':
+                                case 'height':
+                                case 'top':
+                                case 'bottom':
+                                case 'left':
+                                case 'right':
+                                    adjust = true;
+                                    break;
+                            }
                         }
-                    })
+                    });
+                    if (adjust) {
+                        updatePositions();
+                    }
                 });
             }
         }
     }
 
+    function addTransformToTransition(element) {
+        element.style.transition = '';
+        const existing = getComputedStyle(element).transition;
+        if (existing.indexOf('transform') < 0) {
+            element.style.transition = `${existing}${existing.length ? ', ' : ''}transform 0.5s ease 0s`;
+        }
+    }
+
+    function updatePositions() {
+        log('Updating positions');
+        let yeet = false;
+
+        if (isYeetable() && meetOnLeft) {
+            const mainVideo = getFirstChild();
+            mainVideo.style.zIndex = -1;
+            addTransformToTransition(mainVideo);
+
+            const mainStyle = getComputedStyle(mainVideo);
+            const mainWidth = parseInt(mainStyle.width);
+            const mainHeight = parseInt(mainStyle.height);
+            const mainTop = parseInt(mainStyle.top)
+
+            const sideWidth = mainVideo.parentElement.clientWidth - mainWidth;
+
+            const secondTop = parseInt(getComputedStyle(getSecondChild()).top);
+
+            if (sideWidth > 0 && (secondTop < mainTop + mainHeight)) {
+                // Use translateX property, and keep the left property as it's being used by autoTileView
+                mainVideo.style.transform = `translateX(${sideWidth}px)`;
+
+                const sideVideos = getOtherChildren();
+                sideVideos.forEach(node => {
+                    addTransformToTransition(node);
+                    node.style.transform = `translateX(-${mainWidth}px)`;
+                });
+                yeet = true;
+            } 
+        } 
+        
+        if (!yeet) {
+            revert();
+        }
+        updateButton();
+    }
+
     function initializeParent() {
         log('watching...');
-        // Default to true
-        this.meetOnLeft = true;
 
-        new ChildWatcher(parentView, (removed, added) => {
-            if (added && added.length) {
-                if (this.meetOnLeft && isYeetable()) {
-                    updatePositions();
-                }
-                updateButton();
-            }
-
-            updateMainView();
-        });
+        childWatcher = new ChildWatcher(parentView, () => { updatePositions(); });
 
         classWatcher = new ClassWatcher(parentView,
             (beforeOnly, afterOnly) => {
@@ -282,7 +338,7 @@ if (!root) {
                         log(`View ${viewMode} activated. Current: ${currentViewMode}`);
                         if (currentViewMode !== viewMode) {
                             currentViewMode = viewMode;
-                            toggleSide(this.meetOnLeft);
+                            toggleSide(meetOnLeft);
                         }
                     }
                 }
@@ -296,7 +352,7 @@ if (!root) {
             element.style.display = 'flex';
             element.style.marginLeft = '15px';
             element.style.marginRight = '15px';
-            element.addEventListener('click', () => { toggleSide(); });
+            element.addEventListener('click', () => { isYeetable() && toggleSide(); });
 
             const separator = document.createElement('div');
             separator.classList.add(buttonSeparatorCls);
@@ -308,50 +364,17 @@ if (!root) {
             updateButton();
         }
 
-        function addTransformToTransition(element) {
-            element.style.transition = '';
-            const existing = getComputedStyle(element).transition;
-            if (existing.indexOf('transform') < 0) {
-                element.style.transition = `${existing}${existing.length ? ', ' : ''}transform 0.5s ease 0s`;
-            }
-        }
-
-
-        function updatePositions() {
-            log('Updating positions');
-
-            const mainVideo = getFirstChild();
-            mainVideo.style.zIndex = -1;
-            addTransformToTransition(mainVideo);
-
-            const mainWidth = parseInt(getComputedStyle(mainVideo).width);
-            const sideWidth = mainVideo.parentElement.clientWidth - mainWidth;
-
-            if (this.meetOnLeft && sideWidth > 0) {
-                // Use translateX property, and keep the left property as it's being used by autoTileView
-                mainVideo.style.transform = `translateX(${sideWidth}px)`;
-
-                const sideVideos = getOtherChildren();
-                sideVideos.forEach(node => {
-                    addTransformToTransition(node);
-                    node.style.transform = `translateX(-${mainWidth}px)`;
-                });
-            } else {
-                revert();
-            }
-        }
-
         function toggleSide(forceLeft) {
-            if (isYeetable()) {
-                this.meetOnLeft = forceLeft || !this.meetOnLeft;
-                updatePositions();
-            } else {
-                revert();
-            }
+            meetOnLeft = forceLeft || !meetOnLeft;
+            updatePositions();
             updateButton();
         }
 
         addButton();
+
+        window.addEventListener('resize', () => {
+            updatePositions();
+        });
     }
 }
 
