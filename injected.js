@@ -36,6 +36,7 @@ let classWatcher;
 let childWatcher;
 let parentView;
 let currentViewMode;
+let currentChild;
 
 
 // https://davidwalsh.name/javascript-debounce-function
@@ -115,6 +116,49 @@ class ChildWatcher {
     }
 }
 
+class StyleWatcher {
+    constructor(targetNode, sytleChangedCallback) {
+        this.targetNode = targetNode
+        this.styleChangedCallback = sytleChangedCallback
+        this.observer = new MutationObserver(this.mutationCallback.bind(this));
+        this.observe();
+    }
+
+    observe() {
+        this.observer.observe(this.targetNode, {
+            attributes: true,
+            attributeFilter: ['style'],
+            attributeOldValue: true
+        });
+    }
+
+    disconnect() {
+        this.observer.disconnect()
+    }
+
+    mutationCallback(mutationsList) {
+        for (const mutation of mutationsList) {
+            const before = mutation.oldValue ? mutation.oldValue.split(';') : [];
+            const beforeMap = {};
+            before.forEach(item => {
+                if (item) {
+                    const exp = item.split(':');
+                    const key = exp[0].trim();
+                    const value = exp[1].trim();
+                    beforeMap[key] = value;
+                }
+            });
+
+            const afterMap = {};
+            const style = mutation.target.style;
+            Array.from(style).forEach(key => {
+                afterMap[key] = style[key];
+            });
+            this.styleChangedCallback(beforeMap, afterMap);
+        }
+    }
+}
+
 function isYeetable() {
     if (currentViewMode === vwPresenting || currentViewMode === vwSidebar) {
         const mainVideo = getChild();
@@ -160,7 +204,7 @@ function updateButton(enabled) {
     const element = document.getElementById(buttonId);
     if (element) {
         if (enabled) {
-            element.innerText = meetOnLeft ? 'Yeet>>' : 'Yeet<<';
+            element.innerText = meetOnLeft ? 'Yeet >>' : 'Yeet <<';
             // element.innerHTML = // SVG viewBox = 0 0 24 24 ( width: 24px height: 24px)
         } else {
             element.innerText = "Can't Yeet RN";
@@ -176,8 +220,9 @@ function transitionStyle(element) {
     }
 }
 
-function updatePositionsInternal() {
+function updatePositionsImmediate() {
     log('Updating positions');
+
     let isKnownYeetable;
     if (meetOnLeft && isYeetable()) {
         isKnownYeetable = true; // Minor optimization
@@ -194,17 +239,55 @@ function updatePositionsInternal() {
             transitionStyle(otherChild);
             otherChild.style.transform = `translateX(-${mainWidth}px)`;
         });
+
     } else {
         revert();
     }
     updateButton(isKnownYeetable);
 }
 
+function styleWatch() {
+    // Watching second child.
+    const child = getChild(1);
+    if (child !== currentChild) {
+        currentChild = child;
+        if (styleWatcher) {
+            styleWatcher.disconnect();
+            styleWatcher = undefined;
+        }
+        if (currentChild) {
+            styleWatcher = new StyleWatcher(currentChild, (beforeMap, afterMap) => {
+                const set = new Set();
+                Object.keys(beforeMap).forEach(k => set.add(k));
+                Object.keys(afterMap).forEach(k => set.add(k));
+
+                let adjust = false;
+                Array.from(set.keys()).forEach(k => {
+                    const beforeVal = beforeMap[k];
+                    const afterVal = afterMap[k];
+                    if (beforeVal !== afterVal) {
+                        log(`Changed ${k}: ${beforeVal} --> ${afterVal}`);
+                        adjust = ['width', 'height', 'top', 'bottom', 'left', 'right'].indexOf(k) >= 0;
+                    }
+                });
+                if (adjust) {
+                    updatePositionsDelayed();
+                }
+            });
+        }
+    }
+}
+
 function onViewChanged() {
-    toggleSide(meetOnLeft);
-    setTimeout(() => {
-        updatePositions();
-    }, 500);
+    updatePositionsDelayed();
+}
+
+function onYeetClick() {
+    if(isYeetable()) {
+        meetOnLeft = !meetOnLeft;
+        // No debounce
+        updatePositionsImmediate();
+    }
 }
 
 
@@ -216,7 +299,7 @@ function addButton() {
     element.style.marginLeft = '15px';
     element.style.marginRight = '15px';
     element.style.lineHeight = 'normal';
-    element.addEventListener('click', () => { isYeetable() && toggleSide(); });
+    element.addEventListener('click', onYeetClick);
 
     const separator = document.createElement('div');
     separator.classList.add(buttonSeparatorCls);
@@ -228,18 +311,13 @@ function addButton() {
     updateButton();
 }
 
-function toggleSide(forceLeft) {
-    meetOnLeft = forceLeft || !meetOnLeft;
-    updatePositions();
-}
-
 function initializeParent() {
     log('Watching...');
 
     childWatcher = new ChildWatcher(parentView, () => {
         // Make sure the first child always stays behind others
         getChild().style.zIndex = -1;
-        updatePositions();
+        updatePositionsDelayed();
     });
 
     classWatcher = new ClassWatcher(parentView,
@@ -258,7 +336,7 @@ function initializeParent() {
     );
 }
 
-const updatePositions = debounce(updatePositionsInternal, 500);
+const updatePositionsDelayed = debounce(updatePositionsImmediate, 510);
 
 function deactivate() {
     log('Deactivate');
@@ -275,7 +353,7 @@ function deactivate() {
         button.parentNode.removeChild(button);
     }
 
-    window.removeEventListener('resize', updatePositions);
+    window.removeEventListener('resize', updatePositionsDelayed);
 }
 
 
@@ -283,7 +361,7 @@ function activate() {
     log('Activate');
     initializeParent();
     addButton();
-    window.addEventListener('resize', updatePositions);
+    window.addEventListener('resize', updatePositionsDelayed);
 }
 
 const root = document.querySelector('[jsname=RFn3Rd]');
