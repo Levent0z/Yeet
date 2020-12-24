@@ -188,11 +188,7 @@ function getOtherChildren() {
 
 function revert() {
     log('Reverting');
-    const mainVideo = getChild();
-    const sideVideos = getOtherChildren();
-
-    mainVideo.style.transform = '';
-    sideVideos.forEach(node => {
+    parentView.querySelectorAll(`.${childViewCls}`).forEach(node => {
         node.style.transform = '';
     });
 }
@@ -221,10 +217,9 @@ function transitionStyle(element) {
 }
 
 function updatePositionsImmediate() {
-    log('Updating positions');
-
     let isKnownYeetable;
     if (meetOnLeft && isYeetable()) {
+        log('Yeeting');
         isKnownYeetable = true; // Minor optimization
 
         // In addition to updating positions, we also add transitions for transforms here.
@@ -266,11 +261,11 @@ function styleWatch() {
                     const beforeVal = beforeMap[k];
                     const afterVal = afterMap[k];
                     if (beforeVal !== afterVal) {
-                        log(`Changed ${k}: ${beforeVal} --> ${afterVal}`);
                         adjust = ['width', 'height', 'top', 'bottom', 'left', 'right'].indexOf(k) >= 0;
                     }
                 });
                 if (adjust) {
+                    log('Delayed update due to style change');
                     updatePositionsDelayed();
                 }
             });
@@ -279,13 +274,15 @@ function styleWatch() {
 }
 
 function onViewChanged() {
+    log('Delayed update due to view change');
     updatePositionsDelayed();
 }
 
 function onYeetClick() {
-    if(isYeetable()) {
+    if (isYeetable()) {
         meetOnLeft = !meetOnLeft;
         // No debounce
+        log('Immediate update due to click');
         updatePositionsImmediate();
     }
 }
@@ -317,19 +314,17 @@ function initializeParent() {
     childWatcher = new ChildWatcher(parentView, () => {
         // Make sure the first child always stays behind others
         getChild().style.zIndex = -1;
+        log('Delayed update due to change to children');
         updatePositionsDelayed();
     });
 
     classWatcher = new ClassWatcher(parentView,
-        (beforeOnly, afterOnly) => {
+        (_, afterOnly) => {
             for (const cls of afterOnly) {
                 const viewMode = getViewModeFromClass(cls);
-                if (viewMode) {
-                    log(`View ${viewMode} activated. Current: ${currentViewMode}`);
-                    if (currentViewMode !== viewMode) {
-                        currentViewMode = viewMode;
-                        onViewChanged();
-                    }
+                if (viewMode && currentViewMode !== viewMode) {
+                    currentViewMode = viewMode;
+                    onViewChanged();
                 }
             }
         }
@@ -337,6 +332,18 @@ function initializeParent() {
 }
 
 const updatePositionsDelayed = debounce(updatePositionsImmediate, 510);
+
+const onResize = () => {
+    log('Delayed update due to resize');
+    updatePositionsDelayed();
+}
+
+function activate() {
+    log('Activate');
+    initializeParent();
+    addButton();
+    window.addEventListener('resize', onResize);
+}
 
 function deactivate() {
     log('Deactivate');
@@ -353,20 +360,12 @@ function deactivate() {
         button.parentNode.removeChild(button);
     }
 
-    window.removeEventListener('resize', updatePositionsDelayed);
-}
-
-
-function activate() {
-    log('Activate');
-    initializeParent();
-    addButton();
-    window.addEventListener('resize', updatePositionsDelayed);
+    window.removeEventListener('resize', onResize);
 }
 
 const root = document.querySelector('[jsname=RFn3Rd]');
 if (!root) {
-    log('Root element not found');
+    log('Root element not found.');
 } else {
     new ChildWatcher(root, (removed, added) => {
         // Notify removed nodes first
