@@ -363,6 +363,7 @@ function initializeParent() {
     childWatcher = new ChildWatcher(parentView, () => {
         // Make sure the first child always stays behind others
         getChild().style.zIndex = -10000;
+        styleWatchOnChild();
         log('Delayed update due to change to children');
         updatePositionsDelayed();
     });
