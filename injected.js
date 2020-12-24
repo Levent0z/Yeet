@@ -1,3 +1,4 @@
+'use strict';
 const log = (...args) => {
     console.debug(
         '%cYeet',
@@ -26,14 +27,21 @@ const vwSidebar = 'sidebar';
 
 // Button stuff
 const buttonId = 'yeet-toggle-side';
+const buttonTextCls = 'yeet-text';
 const buttonParentCls = 'NzPR9b';
 const buttonClasses = ['uArJ5e', 'UQuaGc', 'kCyAyd', 'QU4Gid', 'foXzLb'];
 const buttonSeparatorCls = 'qO3Z3c';
+const buttonDownCls = 'qs41qe';
+const buttonUpCls = 'j7nIZb';
+const buttonChild1Classes = ['Fvio9d', 'MbhUzd'];
+const buttonChild2Classes = ['e19J0b', 'CeoRYc'];
 
 // Default to true
 let meetOnLeft = true;
 let classWatcher;
 let childWatcher;
+let parentStyleWatcher;
+let childStyleWatcher;
 let parentView;
 let currentViewMode;
 let currentChild;
@@ -199,11 +207,11 @@ function updateButton(enabled) {
     }
     const element = document.getElementById(buttonId);
     if (element) {
+        const span = element.querySelector(`.${buttonTextCls}`);
         if (enabled) {
-            element.innerText = meetOnLeft ? 'Yeet >>' : 'Yeet <<';
-            // element.innerHTML = // SVG viewBox = 0 0 24 24 ( width: 24px height: 24px)
+            span.innerText = meetOnLeft ? 'Yeet >>' : 'Yeet <<';
         } else {
-            element.innerText = "Can't Yeet RN";
+            span.innerText = "Can't Yeet RN";
         }
     }
 }
@@ -241,36 +249,41 @@ function updatePositionsImmediate() {
     updateButton(isKnownYeetable);
 }
 
-function styleWatch() {
+function styleWatchOnParent() {
+    parentStyleWatcher = styleWatchOnNode(parentView, parentStyleWatcher);
+}
+
+function styleWatchOnChild() {
     // Watching second child.
     const child = getChild(1);
     if (child !== currentChild) {
         currentChild = child;
-        if (styleWatcher) {
-            styleWatcher.disconnect();
-            styleWatcher = undefined;
-        }
-        if (currentChild) {
-            styleWatcher = new StyleWatcher(currentChild, (beforeMap, afterMap) => {
-                const set = new Set();
-                Object.keys(beforeMap).forEach(k => set.add(k));
-                Object.keys(afterMap).forEach(k => set.add(k));
-
-                let adjust = false;
-                Array.from(set.keys()).forEach(k => {
-                    const beforeVal = beforeMap[k];
-                    const afterVal = afterMap[k];
-                    if (beforeVal !== afterVal) {
-                        adjust = ['width', 'height', 'top', 'bottom', 'left', 'right'].indexOf(k) >= 0;
-                    }
-                });
-                if (adjust) {
-                    log('Delayed update due to style change');
-                    updatePositionsDelayed();
-                }
-            });
-        }
+        childStyleWatcher = styleWatchOnNode(child, childStyleWatcher);
     }
+}
+
+function styleWatchOnNode(node, existingWatcher) {
+    if (existingWatcher) {
+        existingWatcher.disconnect();
+    }
+    return node ? new StyleWatcher(node, (beforeMap, afterMap) => {
+        const set = new Set();
+        Object.keys(beforeMap).forEach(k => set.add(k));
+        Object.keys(afterMap).forEach(k => set.add(k));
+
+        let adjust = false;
+        Array.from(set.keys()).forEach(k => {
+            const beforeVal = beforeMap[k];
+            const afterVal = afterMap[k];
+            if (beforeVal !== afterVal) {
+                adjust = ['width', 'height', 'top', 'bottom', 'left', 'right'].indexOf(k) >= 0;
+            }
+        });
+        if (adjust) {
+            log(`Delayed update due to style change on ${node.tagName}.${node.className}`);
+            updatePositionsDelayed();
+        }
+    }) : undefined;
 }
 
 function onViewChanged() {
@@ -293,10 +306,46 @@ function addButton() {
     element.setAttribute('id', buttonId)
     element.classList.add(...buttonClasses);
     element.style.display = 'flex';
-    element.style.marginLeft = '15px';
-    element.style.marginRight = '15px';
+    // element.style.marginLeft = '15px';
+    // element.style.marginRight = '15px';
     element.style.lineHeight = 'normal';
+    element.addEventListener('mousedown', () => {
+        if (isYeetable()) {
+            element.classList.remove(buttonUpCls);
+            element.classList.add(buttonDownCls);
+        }
+    });
+    element.addEventListener('mouseup', () => {
+        element.classList.remove(buttonDownCls);
+        element.classList.add(buttonUpCls);
+    });
+    element.addEventListener('mouseleave', () => {
+        element.classList.remove(buttonDownCls);
+        element.classList.add(buttonUpCls);
+    });
+
     element.addEventListener('click', onYeetClick);
+
+    let child = document.createElement('span');
+    child.style.paddingLeft = '15px';
+    child.style.paddingRight = '15px';
+    child.classList.add(buttonTextCls);
+    element.append(child);
+
+    // Click Effect
+    child = document.createElement('div');
+    child.classList.add(...buttonChild1Classes);
+    child.style.top = '21px';
+    child.style.left = '35px';
+    child.style.width = '72px';
+    child.style.height = '72px';
+    //child.setAttribute('jsname', 'ksKsZd');
+    element.append(child);
+
+    // Hover effect
+    child = document.createElement('div');
+    child.classList.add(...buttonChild2Classes);
+    element.append(child);
 
     const separator = document.createElement('div');
     separator.classList.add(buttonSeparatorCls);
@@ -313,7 +362,7 @@ function initializeParent() {
 
     childWatcher = new ChildWatcher(parentView, () => {
         // Make sure the first child always stays behind others
-        getChild().style.zIndex = -1;
+        getChild().style.zIndex = -10000;
         log('Delayed update due to change to children');
         updatePositionsDelayed();
     });
@@ -341,12 +390,17 @@ const onResize = () => {
 function activate() {
     log('Activate');
     initializeParent();
+    styleWatchOnParent();
     addButton();
     window.addEventListener('resize', onResize);
 }
 
 function deactivate() {
     log('Deactivate');
+
+    parentView = undefined;
+    styleWatchOnParent();
+
     if (classWatcher) {
         classWatcher.disconnect();
         classWatcher = undefined;
