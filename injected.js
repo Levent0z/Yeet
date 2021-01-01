@@ -196,9 +196,11 @@ function getOtherChildren() {
 
 function revert() {
     log('Reverting');
-    parentView.querySelectorAll(`.${childViewCls}`).forEach(node => {
-        node.style.transform = '';
-    });
+    if (parentView) {
+        parentView.querySelectorAll(`.${childViewCls}`).forEach(node => {
+            node.style.transform = '';
+        });
+    }
 }
 
 function updateButton(enabled) {
@@ -400,6 +402,8 @@ function deactivate() {
     log('Deactivate');
 
     parentView = undefined;
+    currentViewMode = undefined;
+    currentViewMode = undefined;
     styleWatchOnParent();
 
     if (classWatcher) {
