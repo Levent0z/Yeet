@@ -1,3 +1,4 @@
+'use strict';
 const log = (...args) => {
     console.debug(
         '%cYeet',
@@ -5,44 +6,94 @@ const log = (...args) => {
         ...args,
     );
 };
-log('starting up...')
+log('Starting up...')
+
+// Hierarchy Classes
+const grandParentViewCls = 'loWbp';
+const parentViewCls = 'zWfAib'; // This is where all the top-level DIVs exist 
+const childViewCls = 'Zf0RDc';
+
+// View classes
+const clsPresenting = 'Qtgubc';
+const clsTiles = 'eFmLfc';
+const clsPinned = 'QhPhw'; // presenting or not
+const clsSidebar = 'PvRhvb';
+
+// View names
+const vwPresenting = 'presenting';
+const vwTiles = 'tiles';
+const vwPinned = 'pinned';
+const vwSidebar = 'sidebar';
+
+// Button stuff
+const buttonId = 'yeet-toggle-side';
+const buttonTextCls = 'yeet-text';
+const buttonParentCls = 'NzPR9b';
+const buttonClasses = ['uArJ5e', 'UQuaGc', 'kCyAyd', 'QU4Gid', 'foXzLb'];
+const buttonSeparatorCls = 'qO3Z3c';
+const buttonDownCls = 'qs41qe';
+const buttonUpCls = 'j7nIZb';
+const buttonChild1Classes = ['Fvio9d', 'MbhUzd'];
+const buttonChild2Classes = ['e19J0b', 'CeoRYc'];
+
+// Default to true
+let meetOnLeft = true;
+let classWatcher;
+let childWatcher;
+let parentStyleWatcher;
+let childStyleWatcher;
+let parentView;
+let currentViewMode;
+let currentChild;
+
+
+// https://davidwalsh.name/javascript-debounce-function
+function debounce(func, wait, immediate) {
+    var timeout;
+    return function () {
+        var context = this, args = arguments;
+        var later = function () {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+        };
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+    };
+};
 
 // Based on https://stackoverflow.com/questions/10612024/event-trigger-on-a-class-change?lq=1
 class ClassWatcher {
-    constructor(targetNode, classesToWatch, classAddedCallback, classRemovedCallback) {
+    constructor(targetNode, classChangedCallback) {
         this.targetNode = targetNode
-        this.classesToWatch = classesToWatch
-        this.classAddedCallback = classAddedCallback
-        this.classRemovedCallback = classRemovedCallback
-        this.lastClass = this.getFirstWatchedClass(targetNode.classList)
-        this.observer = new MutationObserver(this.mutationCallback);
+        this.classChangedCallback = classChangedCallback
+        this.observer = new MutationObserver(this.mutationCallback.bind(this));
         this.observe();
     }
 
-    getFirstWatchedClass(classList) {
-        return this.classesToWatch.find(c => classList.contains(c))
-    }
-
     observe() {
-        this.observer.observe(this.targetNode, { attributes: true, attributeFilter: ['class'] });
+        this.observer.observe(this.targetNode, {
+            attributes: true,
+            attributeFilter: ['class'],
+            attributeOldValue: true
+        });
     }
 
     disconnect() {
         this.observer.disconnect()
     }
 
-    mutationCallback = mutationsList => {
-        for (let mutation of mutationsList) {
-            const currentClass = this.getFirstWatchedClass(mutation.target.classList)
-            if (this.lastClass !== currentClass) {
-                const previousClass = this.lastClass;
-                this.lastClass = currentClass;
-                if (currentClass) {
-                    this.classAddedCallback(previousClass, currentClass)
-                } else {
-                    this.classRemovedCallback(previousClass)
-                }
-                return;
+    mutationCallback(mutationsList) {
+        for (const mutation of mutationsList) {
+            if (mutation.oldValue !== mutation.target.classList.value) {
+                const before = mutation.oldValue ? mutation.oldValue.split(' ') : [];
+                const after = (mutation.target.classList && mutation.target.classList.value) ? mutation.target.classList.value.split(' ') : [];
+
+                const beforeOnly = before.filter(b => after.indexOf(b) < 0);
+                const afterOnly = after.filter(a => before.indexOf(a) < 0);
+
+                this.classChangedCallback(beforeOnly, afterOnly);
             }
         }
     }
@@ -67,254 +118,328 @@ class ChildWatcher {
     mutationCallback = mutationsList => {
         for (let mutation of mutationsList) {
             if (mutation.type === 'childList') {
-                this.changedCallback(mutation.addedNodes, mutation.removedNodes);
+                this.changedCallback(mutation.removedNodes, mutation.addedNodes);
             }
         }
     }
 }
-// Hierarchy Classes
-const grandParentViewCls = 'loWbp';
-const parentViewCls = 'zWfAib';
-const childViewCls = 'Zf0RDc';
 
-// View classes
-const sideViewCls = 'PvRhvb';
-const autoSideViewCls = 'WT4T8c';
-const tileViewCls = 'xh9pFd';
-const spotViewCls = 'n9oEIb'; // pinned view
-const presentingView1Cls = 'CTSK6e';
-const presentingView2Cls = 'SJniVb';
-const autoTileViewCls = 'Qtgubc'; // 'eFmLfc' 
+class StyleWatcher {
+    constructor(targetNode, sytleChangedCallback) {
+        this.targetNode = targetNode
+        this.styleChangedCallback = sytleChangedCallback
+        this.observer = new MutationObserver(this.mutationCallback.bind(this));
+        this.observe();
+    }
 
-const watchedClasses = [autoSideViewCls, sideViewCls, tileViewCls, spotViewCls, presentingView1Cls, presentingView2Cls, autoTileViewCls];
+    observe() {
+        this.observer.observe(this.targetNode, {
+            attributes: true,
+            attributeFilter: ['style'],
+            attributeOldValue: true
+        });
+    }
 
-// Auto, side: zWfAib Z319Jd PvRhvb a1pVef
-// manual, side: zWfAib Z319Jd PvRhvb a1pVef
-// manual side, spot: zWfAib Z319Jd n9oEIb a1pVef
-// Auto, tiled, no pre: zWfAib Z319Jd a1pVef eFmLfc
-// Manual, tiled, no pre: zWfAib Z319Jd eFmLfc t4HJue a1pVef CUJC3
-// Tiles, spot: zWfAib Z319Jd a1pVef eFmLfc
-// a1pVef --> unreliable
+    disconnect() {
+        this.observer.disconnect()
+    }
 
-// Button Classes
-const buttonParentCls = 'NzPR9b';
-const buttonClasses = ['uArJ5e', 'UQuaGc', 'kCyAyd', 'kW31ib', 'foXzLb'];
-const buttonSeparatorCls = 'qO3Z3c';
+    mutationCallback(mutationsList) {
+        for (const mutation of mutationsList) {
+            const before = mutation.oldValue ? mutation.oldValue.split(';') : [];
+            const beforeMap = {};
+            before.forEach(item => {
+                if (item) {
+                    const exp = item.split(':');
+                    const key = exp[0].trim();
+                    const value = exp[1].trim();
+                    beforeMap[key] = value;
+                }
+            });
 
-const buttonId = 'yeet-toggle-side';
+            const afterMap = {};
+            const style = mutation.target.style;
+            Array.from(style).forEach(key => {
+                afterMap[key] = style[key];
+            });
+            this.styleChangedCallback(beforeMap, afterMap);
+        }
+    }
+}
+
+function isYeetable() {
+    if (currentViewMode === vwPresenting || currentViewMode === vwSidebar) {
+        const mainVideo = getChild();
+        const mainStyle = getComputedStyle(mainVideo);
+        const mainWidth = parseInt(mainStyle.width);
+        const mainBottom = parseInt(mainStyle.top) + parseInt(mainStyle.height);
+        const sideWidth = mainVideo.parentElement.clientWidth - mainWidth;
+        const secondTop = parseInt(getComputedStyle(getChild(1)).top);
+
+        // Make sure that the tiles haven't arranged below the main
+        return sideWidth > 0 && (secondTop < mainBottom);
+    }
+    return false;
+}
+
+function getViewModeFromClass(cls) {
+    return cls === clsPresenting ? vwPresenting : cls === clsTiles ? vwTiles : cls === clsPinned ? vwPinned : cls === clsSidebar ? vwSidebar : undefined;
+}
+
+function getChild(index) {
+    index = index || 0;
+    return parentView.querySelector(`.${childViewCls}[data-allocation-index="${index}"]`);
+}
+function getOtherChildren() {
+    return parentView.querySelectorAll(`.${childViewCls}:not([data-allocation-index="0"])`);
+}
+
+function revert() {
+    log('Reverting');
+    if (parentView) {
+        parentView.querySelectorAll(`.${childViewCls}`).forEach(node => {
+            node.style.transform = '';
+        });
+    }
+}
+
+function updateButton(enabled) {
+    if (enabled === undefined) {
+        enabled = isYeetable();
+    }
+    const element = document.getElementById(buttonId);
+    if (element) {
+        const span = element.querySelector(`.${buttonTextCls}`);
+        if (enabled) {
+            span.innerText = meetOnLeft ? 'Yeet >>' : 'Yeet <<';
+        } else {
+            span.innerText = "Can't Yeet RN";
+        }
+    }
+}
+
+function transitionStyle(element) {
+    element.style.transition = '';
+    const existing = getComputedStyle(element).transition;
+    if (existing.indexOf('transform') < 0) {
+        element.style.transition = `${existing}${existing.length ? ', ' : ''}transform 0.5s ease 0s`;
+    }
+}
+
+function updatePositionsImmediate() {
+    let isKnownYeetable;
+    if (meetOnLeft && isYeetable()) {
+        log('Yeeting');
+        isKnownYeetable = true; // Minor optimization
+
+        // In addition to updating positions, we also add transitions for transforms here.
+        const mainChild = getChild();
+        const mainWidth = parseInt(getComputedStyle(mainChild).width);
+        const sideWidth = mainChild.parentElement.clientWidth - mainWidth;
+
+        transitionStyle(mainChild);
+        mainChild.style.transform = `translateX(${sideWidth}px)`;
+
+        getOtherChildren().forEach(otherChild => {
+            transitionStyle(otherChild);
+            otherChild.style.transform = `translateX(-${mainWidth}px)`;
+        });
+
+    } else {
+        revert();
+    }
+    updateButton(isKnownYeetable);
+}
+
+function styleWatchOnParent() {
+    parentStyleWatcher = styleWatchOnNode(parentView, parentStyleWatcher);
+}
+
+function styleWatchOnChild() {
+    // Watching second child.
+    const child = getChild(1);
+    if (child !== currentChild) {
+        currentChild = child;
+        childStyleWatcher = styleWatchOnNode(child, childStyleWatcher);
+    }
+}
+
+function styleWatchOnNode(node, existingWatcher) {
+    if (existingWatcher) {
+        existingWatcher.disconnect();
+    }
+    return node ? new StyleWatcher(node, (beforeMap, afterMap) => {
+        const set = new Set();
+        Object.keys(beforeMap).forEach(k => set.add(k));
+        Object.keys(afterMap).forEach(k => set.add(k));
+
+        let adjust = false;
+        Array.from(set.keys()).forEach(k => {
+            const beforeVal = beforeMap[k];
+            const afterVal = afterMap[k];
+            if (beforeVal !== afterVal) {
+                adjust = ['width', 'height', 'top', 'bottom', 'left', 'right'].indexOf(k) >= 0;
+            }
+        });
+        if (adjust) {
+            log(`Delayed update due to style change on ${node.tagName}.${node.className}`);
+            updatePositionsDelayed();
+        }
+    }) : undefined;
+}
+
+function onViewChanged() {
+    log('Delayed update due to view change');
+    updatePositionsDelayed();
+}
+
+function onYeetClick() {
+    if (isYeetable()) {
+        meetOnLeft = !meetOnLeft;
+        // No debounce
+        log('Immediate update due to click');
+        updatePositionsImmediate();
+    }
+}
+
+
+function addButton() {
+    const element = document.createElement('div');
+    element.setAttribute('id', buttonId)
+    element.classList.add(...buttonClasses);
+    element.style.display = 'flex';
+    // element.style.marginLeft = '15px';
+    // element.style.marginRight = '15px';
+    element.style.lineHeight = 'normal';
+    element.addEventListener('mousedown', () => {
+        if (isYeetable()) {
+            element.classList.remove(buttonUpCls);
+            element.classList.add(buttonDownCls);
+        }
+    });
+    element.addEventListener('mouseup', () => {
+        element.classList.remove(buttonDownCls);
+        element.classList.add(buttonUpCls);
+    });
+    element.addEventListener('mouseleave', () => {
+        element.classList.remove(buttonDownCls);
+        element.classList.add(buttonUpCls);
+    });
+
+    element.addEventListener('click', onYeetClick);
+
+    let child = document.createElement('span');
+    child.style.paddingLeft = '15px';
+    child.style.paddingRight = '15px';
+    child.classList.add(buttonTextCls);
+    element.append(child);
+
+    // Click Effect
+    child = document.createElement('div');
+    child.classList.add(...buttonChild1Classes);
+    child.style.top = '21px';
+    child.style.left = '35px';
+    child.style.width = '72px';
+    child.style.height = '72px';
+    //child.setAttribute('jsname', 'ksKsZd');
+    element.append(child);
+
+    // Hover effect
+    child = document.createElement('div');
+    child.classList.add(...buttonChild2Classes);
+    element.append(child);
+
+    const separator = document.createElement('div');
+    separator.classList.add(buttonSeparatorCls);
+
+    const parent = document.querySelector(`.${buttonParentCls}`);
+    parent.insertAdjacentElement('afterbegin', separator);
+    parent.insertAdjacentElement('afterbegin', element);
+
+    updateButton();
+}
+
+function initializeParent() {
+    log('Watching...');
+
+    childWatcher = new ChildWatcher(parentView, () => {
+        // Make sure the first child always stays behind others
+        getChild().style.zIndex = -10000;
+        styleWatchOnChild();
+        log('Delayed update due to change to children');
+        updatePositionsDelayed();
+    });
+
+    classWatcher = new ClassWatcher(parentView,
+        (_, afterOnly) => {
+            for (const cls of afterOnly) {
+                const viewMode = getViewModeFromClass(cls);
+                if (viewMode && currentViewMode !== viewMode) {
+                    currentViewMode = viewMode;
+                    onViewChanged();
+                }
+            }
+        }
+    );
+}
+
+const updatePositionsDelayed = debounce(updatePositionsImmediate, 510);
+
+const onResize = () => {
+    log('Delayed update due to resize');
+    updatePositionsDelayed();
+}
+
+function activate() {
+    log('Activate');
+    initializeParent();
+    styleWatchOnParent();
+    addButton();
+    window.addEventListener('resize', onResize);
+}
+
+function deactivate() {
+    log('Deactivate');
+
+    parentView = undefined;
+    currentViewMode = undefined;
+    currentViewMode = undefined;
+    styleWatchOnParent();
+
+    if (classWatcher) {
+        classWatcher.disconnect();
+        classWatcher = undefined;
+    }
+    if (childWatcher) {
+        childWatcher.disconnect();
+        childWatcher = undefined;
+    }
+    const button = document.getElementById(buttonId);
+    if (button) {
+        button.parentNode.removeChild(button);
+    }
+
+    window.removeEventListener('resize', onResize);
+}
 
 const root = document.querySelector('[jsname=RFn3Rd]');
 if (!root) {
-    log('Root element not found');
+    log('Root element not found.');
 } else {
-
-    let classWatcher;
-    let parentView;
-
-    function isGrandParent(node) {
-        return node.classList && node.classList.contains(grandParentViewCls);
-    }
-
-    new ChildWatcher(root, (added, removed) => {
+    new ChildWatcher(root, (removed, added) => {
         // Notify removed nodes first
         removed.forEach(node => {
-            if (isGrandParent(node)) {
-                log('Grandparent Lost');
-                if (classWatcher) {
-                    classWatcher.disconnect();
-                }
-                const button = document.getElementById(buttonId);
-                if (button) {
-                    button.parentNode.removeChild(button);
-                }
+            if (node.classList && node.classList.contains(grandParentViewCls)) {
+                deactivate();
             }
         });
         added.forEach(node => {
             if (!parentView) {
                 parentView = node.querySelector(`.${parentViewCls}`);
-                if (!parentView) {
-                    return;
+                if (parentView) {
+                    activate();
                 }
-                initializeParent();
             }
         });
     });
-
-
-    function getViewMode() {
-        const cl = parentView.classList;
-        return cl.contains(presentingView1Cls) || cl.contains(presentingView2Cls) ? 'presentingView' :
-            cl.contains(autoSideViewCls) ? 'autoSideView' :
-                cl.contains(sideViewCls) ? 'sideView' :
-                    cl.contains(tileViewCls) ? 'tileView' :
-                        cl.contains(spotViewCls) ? 'spotView' :
-                            cl.contains(autoTileViewCls) ? 'autoTileView' :
-                                undefined;
-    }
-
-    function isYeetable(viewMode) {
-        const yeetables = ['presentingView', 'sideView', 'autoSideView', 'autoTileView'];
-        return yeetables.indexOf(viewMode) >= 0;
-    }
-
-    function getViewModeFromClass(cls) {
-        return cls ? (cls === presentingView1Cls || cls === presentingView2Cls ? 'presentingView' :
-            cls === autoSideViewCls ? 'autoSideView' :
-                cls === sideViewCls ? 'sideView' :
-                    cls === tileViewCls ? 'tileView' :
-                        cls === spotViewCls ? 'spotView' :
-                            cls === autoTileViewCls ? 'autoTileView' :
-                                undefined) : undefined;
-    }
-
-    function getFirstChild() {
-        return parentView.querySelector(`.${childViewCls}[data-allocation-index="0"]`);
-    }
-
-    function getOtherChildren() {
-        return parentView.querySelectorAll(`.${childViewCls}:not([data-allocation-index="0"])`);
-    }
-
-    function revert(viewMode) {
-        log(`revert for ${viewMode}`);
-        const mainVideo = getFirstChild();
-        const sideVideos = getOtherChildren();
-
-        if (viewMode === 'autoTileView') {
-            mainVideo.style.transform = '';
-            sideVideos.forEach(node => {
-                node.style.transform = '';
-            });
-        } else {
-            mainVideo.style.left = '';
-            sideVideos.forEach(node => {
-                node.style.left = '';
-            });
-        }
-    }
-
-    function updateButton() {
-        const element = document.getElementById(buttonId);
-        if (element) {
-            const viewMode = getViewMode();
-            if (isYeetable(viewMode)) {
-                element.innerText = this.meetOnLeft ? 'Yeet Right' : 'Yeet Left';
-                // element.innerHTML = // SVG viewBox = 0 0 24 24 ( width: 24px height: 24px)
-            } else {
-                element.innerText = "Can't Yeet RN";
-            }
-        }
-    }
-
-
-
-    function initializeParent() {
-        log('watching...');
-        // Default to true
-        this.meetOnLeft = true;
-
-        new ChildWatcher(parentView, (added, removed) => {
-            if (this.meetOnLeft && (added && added.length)) {
-                if (isYeetable(getViewMode())) {
-                    yeetLeft();
-                }
-                updateButton();
-            }
-        });
-
-        classWatcher = new ClassWatcher(parentView, watchedClasses,
-            () => {
-                const viewMode = getViewMode();
-                log(`View activated. Current: ${viewMode}`);
-                 
-                if (this.meetOnLeft) {
-                    toggleSide(true);
-                }
-
-                if (viewMode === 'spotView') {
-                    const mainVideo = getFirstChild();
-                    mainVideo.style.left = '';
-                    mainVideo.style.transform = '';
-                }
-
-                updateButton();
-            },
-            (previousClass) => {
-                const lastViewMode = getViewModeFromClass(previousClass);
-                log(`View deactivated. Previous: ${lastViewMode}, Current: ${getViewMode()}`);
-                // revert(lastViewMode);
-            }
-        );
-
-        function addButton() {
-            const element = document.createElement('div');
-            element.setAttribute('id', buttonId)
-            element.classList.add(...buttonClasses);
-            element.style.display = 'flex';
-            element.style.marginLeft = '15px';
-            element.style.marginRight = '15px';
-            element.addEventListener('click', () => { toggleSide(); });
-
-            const separator = document.createElement('div');
-            separator.classList.add(buttonSeparatorCls);
-
-            const parent = document.querySelector(`.${buttonParentCls}`);
-            parent.insertAdjacentElement('afterbegin', separator);
-            parent.insertAdjacentElement('afterbegin', element);
-
-            updateButton();
-        }
-
-        function yeetLeft() {
-            const mainVideo = getFirstChild();
-            mainVideo.style.zIndex = -1;
-
-            const sideVideos = getOtherChildren();
-
-            const viewMode = getViewMode();
-            log(`left for ${viewMode}`);
-            if (viewMode === 'autoTileView') {
-                const mainWidth = parseInt(mainVideo.style.width);
-                const sideWidth = mainVideo.parentElement.clientWidth - mainWidth;
-
-                // Use translateX property, and keep the left property as it's being used by autoTileView
-                mainVideo.style.transform = `translateX(${sideWidth}px)`;
-                sideVideos.forEach(node => { node.style.transform = `translateX(-${mainWidth}px)`; });
-            } else {
-                mainVideo.style.transform = '';
-                mainVideo.style.left = (viewMode === 'autoSideView' || viewMode === 'presentingView') ? '25%' : '218px';
-                sideVideos.forEach(node => { 
-                    node.style.left = 0; 
-                    node.style.transform = '';
-                });
-            }
-        }
-
-        function toggleSide(forceLeft) {
-
-            const viewMode = getViewMode();
-
-            let meetOnLeft;
-            if (isYeetable(viewMode)) {
-                meetOnLeft = forceLeft || !this.meetOnLeft;
-            }
-
-            if (meetOnLeft === undefined) {
-                log("Unsupported view mode. Please check that you're using a compatible layout.");
-                return;
-            }
-
-            if (meetOnLeft) {
-                yeetLeft();
-            } else {
-                revert(viewMode);
-            }
-
-            this.meetOnLeft = meetOnLeft;
-            updateButton();
-        }
-
-        addButton();
-    }
 }
-
