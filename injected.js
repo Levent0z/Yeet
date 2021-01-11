@@ -1,4 +1,10 @@
 'use strict';
+/*
+    Written by Levent Oz
+    http://www.leventoz.com/
+    https://github.com/Levent0z/Yeet
+*/
+
 const log = (...args) => {
     console.debug(
         '%cYeet',
@@ -44,7 +50,7 @@ let parentStyleWatcher;
 let childStyleWatcher;
 let parentView;
 let currentViewMode;
-let currentChild;
+let currentSecondChild;
 
 
 // https://davidwalsh.name/javascript-debounce-function
@@ -170,11 +176,19 @@ class StyleWatcher {
 function isYeetable() {
     if (currentViewMode === vwPresenting || currentViewMode === vwSidebar) {
         const mainVideo = getChild();
+        if (!mainVideo) {
+            return false;
+        }
         const mainStyle = getComputedStyle(mainVideo);
         const mainWidth = parseInt(mainStyle.width);
         const mainBottom = parseInt(mainStyle.top) + parseInt(mainStyle.height);
         const sideWidth = mainVideo.parentElement.clientWidth - mainWidth;
-        const secondTop = parseInt(getComputedStyle(getChild(1)).top);
+
+        const secondVideo = getChild(1);
+        if (!secondVideo) {
+            return false;
+        }
+        const secondTop = parseInt(getComputedStyle(secondVideo).top);
 
         // Make sure that the tiles haven't arranged below the main
         return sideWidth > 0 && (secondTop < mainBottom);
@@ -187,9 +201,13 @@ function getViewModeFromClass(cls) {
 }
 
 function getChild(index) {
-    index = index || 0;
-    return parentView.querySelector(`.${childViewCls}[data-allocation-index="${index}"]`);
+    try {
+        return parentView.querySelector(`.${childViewCls}[data-allocation-index="${index || 0}"]`);
+    } catch {
+        return undefined;
+    }
 }
+
 function getOtherChildren() {
     return parentView.querySelectorAll(`.${childViewCls}:not([data-allocation-index="0"])`);
 }
@@ -258,8 +276,8 @@ function styleWatchOnParent() {
 function styleWatchOnChild() {
     // Watching second child.
     const child = getChild(1);
-    if (child !== currentChild) {
-        currentChild = child;
+    if (!child || child !== currentSecondChild) {
+        currentSecondChild = child;
         childStyleWatcher = styleWatchOnNode(child, childStyleWatcher);
     }
 }
@@ -365,6 +383,7 @@ function initializeParent() {
     childWatcher = new ChildWatcher(parentView, () => {
         // Make sure the first child always stays behind others
         getChild().style.zIndex = -10000;
+        getOtherChildren().forEach(c => c.style.zIndex = '');
         styleWatchOnChild();
         log('Delayed update due to change to children');
         updatePositionsDelayed();
@@ -403,7 +422,9 @@ function deactivate() {
 
     parentView = undefined;
     currentViewMode = undefined;
-    currentViewMode = undefined;
+
+    // Deactivate style watchers
+    styleWatchOnChild();
     styleWatchOnParent();
 
     if (classWatcher) {
